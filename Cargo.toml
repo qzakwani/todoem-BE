@@ -1,0 +1,12 @@
+[package]
+name = "todoem"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.5"
+reqwest = "0.12.4"
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+sqlx = { version = "0.7", features = [ "runtime-tokio" ] }
+serde = "1.0.203"
+serde_json = "1.0.117"
