@@ -11,29 +11,32 @@ services:
         condition: service_healthy
     volumes:
       - .:/app:rw,cached
+    environment:
+      - DATABASE_URL=postgres://alqasim@db/todoem
     command: cargo watch -q -c -w src/ -x run
     networks:
       - todoem
 
   db:
-    image: postgres:14.3-alpine
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
     container_name: todoem-db
-    restart: always
     user: postgres
+    restart: always
     ports:
       - 5432:5432
     volumes:
-      - ./db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data:rw
     environment:
-      - POSTGRES_USER=alqadim
-      # - POSTGRES_PASSWORD=alzakwani
+      - POSTGRES_USER=alqasim
+      - POSTGRES_PASSWORD=alzakwani
       - POSTGRES_DB=todoem
-      - POSTGRES_HOST_AUTH_METHOD=trust
     expose:
       - 5432
     healthcheck:
-      test: ["CMD", "pg_isready"]
-      interval: 10s
+      test: ["CMD", "pg_isready -U alqasim -d todoem"]
+      interval: 30s
       timeout: 5s
       retries: 5
     networks:

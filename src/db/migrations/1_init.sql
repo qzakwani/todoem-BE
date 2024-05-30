@@ -1,0 +1,28 @@
+BEGIN;
+
+
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS listers (
+user_id UUID REFERENCES users(id) NOT NULL,
+lister_id UUID REFERENCES users(id) NOT NULL,
+connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+PRIMARY KEY (user_id, lister_id)
+);
+
+
+CREATE TABLE IF NOT EXISTS lister_requests (
+sender_id UUID REFERENCES users(id) NOT NULL,
+receiver_id UUID REFERENCES users(id) NOT NULL,
+sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+PRIMARY KEY (sender_id, receiver_id)
+);
+
+
+COMMIT;
