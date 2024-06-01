@@ -15,6 +15,7 @@ impl fmt::Display for ConfigError<'_> {
 
 pub struct Config {
     pub pool: PgPool,
+    pub port: u16,
 }
 
 #[instrument]
@@ -48,13 +49,11 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
     info!("Running migrations ...");
     if let Err(e) = sqlx::migrate!("src/db/migrations").run(&pool).await {
         error!("Failed to run migrations: {:?}", e);
-        return Err(ConfigError {
-            msg: "Failed to run migrations",
-        });
+    } else {
+        info!("\n\n\t**Migrations ran successfully**\n\n");
     }
-    info!("\n\n\t**Migrations ran successfully**\n\n");
 
-    let config = Config { pool: pool };
+    let config = Config { pool, port: 8080 };
 
     Ok(config)
 }
