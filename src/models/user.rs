@@ -1,6 +1,9 @@
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: uuid::Uuid,
     pub name: String,
+    pub username: String,
     pub email: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }

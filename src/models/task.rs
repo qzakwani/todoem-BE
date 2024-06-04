@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
-
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Frequency {
     Daily,
     Weekly,

@@ -1,7 +1,7 @@
+use jsonwebtoken::Validation;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::{env, fmt};
 use tracing::{error, info, instrument};
-
 #[derive(Debug, Clone)]
 pub struct ConfigError<'a> {
     msg: &'a str,
@@ -12,11 +12,12 @@ impl fmt::Display for ConfigError<'_> {
         write!(f, "{}", self.msg)
     }
 }
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub pool: PgPool,
     pub port: u16,
     pub secret_key: String,
+    pub jwt_validation: Validation,
 }
 
 #[instrument]
@@ -25,7 +26,7 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
     let db_url = match env::var("DATABASE_URL") {
         Ok(val) => val,
         Err(e) => {
-            error!("DATABASE_URL not set: {:?}", e);
+            error!("DATABASE_URL not set: {:#?}", e);
             return Err(ConfigError {
                 msg: "DATABASE_URL not set",
             });
@@ -35,12 +36,15 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
     let secret_key = match env::var("SECRET_KEY") {
         Ok(val) => val,
         Err(e) => {
-            error!("SECRET_KEY not set: {:?}", e);
+            error!("SECRET_KEY not set: {:#?}", e);
             return Err(ConfigError {
                 msg: "SECRET_KEY not set",
             });
         }
     };
+
+    let mut jwt_validation = Validation::default();
+    jwt_validation.validate_aud = false;
 
     info!("\nConnecting to database ...");
     let pool: PgPool = match PgPoolOptions::new()
@@ -50,7 +54,7 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
     {
         Ok(pool) => pool,
         Err(e) => {
-            error!("Failed to connect to database: {:?}", e);
+            error!("Failed to connect to database: {:#?}", e);
             return Err(ConfigError {
                 msg: "Failed to connect to database",
             });
@@ -59,7 +63,7 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
 
     info!("Running migrations ...");
     if let Err(e) = sqlx::migrate!("src/db/migrations").run(&pool).await {
-        error!("Failed to run migrations: {:?}", e);
+        error!("Failed to run migrations: {:#?}", e);
     } else {
         info!("\n\n\t**Migrations ran successfully**\n\n");
     }
@@ -68,6 +72,7 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
         pool,
         port: 8080,
         secret_key,
+        jwt_validation,
     };
 
     Ok(config)

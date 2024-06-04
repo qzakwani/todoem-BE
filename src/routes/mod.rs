@@ -1,4 +1,5 @@
-pub mod users;
+pub mod task;
+pub mod user;
 
 use axum::{middleware, Router};
 use http::Method;
@@ -10,7 +11,9 @@ use crate::config::Config;
 use crate::middlewares::jwt::jwt_auth;
 
 pub fn init(config: &Config) -> Router {
-    let apis = Router::new().nest("/users", users::init());
+    let apis = Router::new()
+        .nest("/user", user::init())
+        .nest("/task", task::init());
 
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource

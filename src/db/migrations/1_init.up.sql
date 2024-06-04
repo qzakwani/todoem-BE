@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS user_connections (
 user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 connected_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-PRIMARY KEY (user_id, connection_id)
+PRIMARY KEY (user_id, connected_id)
 );
 
 
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS groups (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TYPE event AS ENUM ('add', 'remove', 'promote', 'demote' 'rename', 'change_description');
+CREATE TYPE event AS ENUM ('add', 'remove', 'promote', 'demote', 'rename', 'change_description');
 
 CREATE TABLE IF NOT EXISTS group_events (
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS group_events (
   member_id UUID REFERENCES users(id) ON DELETE SET NULL,
   change TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-)
+);
 
 CREATE TABLE IF NOT EXISTS group_users (
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
