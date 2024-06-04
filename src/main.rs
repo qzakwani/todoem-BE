@@ -15,7 +15,7 @@ async fn main() {
     // initialize our configuration
     let config = config::init().await.unwrap();
 
-    let router = routes::init();
+    let router = routes::init(&config);
 
     // run our app with hyper
     let addr = format!("0.0.0.0:{}", config.port);

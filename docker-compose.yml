@@ -13,6 +13,7 @@ services:
       - .:/app:rw,cached
     environment:
       - DATABASE_URL=postgres://alqasim:alzakwani@db:5432/todoem?sslmode=disable
+      - SECRET_KEY=xqcknM1ICw65eHLPB7+0UPgT2sdayTvIm0bRKhA+Oug=
     command: cargo watch -q -c -w src/ -x run
     networks:
       - todoem

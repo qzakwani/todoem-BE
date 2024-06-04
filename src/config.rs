@@ -12,10 +12,11 @@ impl fmt::Display for ConfigError<'_> {
         write!(f, "{}", self.msg)
     }
 }
-
+#[derive(Clone)]
 pub struct Config {
     pub pool: PgPool,
     pub port: u16,
+    pub secret_key: String,
 }
 
 #[instrument]
@@ -27,6 +28,16 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
             error!("DATABASE_URL not set: {:?}", e);
             return Err(ConfigError {
                 msg: "DATABASE_URL not set",
+            });
+        }
+    };
+
+    let secret_key = match env::var("SECRET_KEY") {
+        Ok(val) => val,
+        Err(e) => {
+            error!("SECRET_KEY not set: {:?}", e);
+            return Err(ConfigError {
+                msg: "SECRET_KEY not set",
             });
         }
     };
@@ -53,7 +64,11 @@ pub async fn init<'a>() -> Result<Config, ConfigError<'a>> {
         info!("\n\n\t**Migrations ran successfully**\n\n");
     }
 
-    let config = Config { pool, port: 8080 };
+    let config = Config {
+        pool,
+        port: 8080,
+        secret_key,
+    };
 
     Ok(config)
 }
