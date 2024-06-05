@@ -23,7 +23,7 @@ impl APIError {
         Err(Self(msg, status))
     }
 
-    pub fn from<T>(msg: String) -> Result<T, Self> {
+    pub fn e500<T>(msg: String) -> Result<T, Self> {
         Self::new::<T>(StatusCode::INTERNAL_SERVER_ERROR, msg)
     }
 }

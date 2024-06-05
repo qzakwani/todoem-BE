@@ -15,12 +15,12 @@ async fn main() {
     // initialize our configuration
     let config = config::init().await.unwrap();
 
-    let router = routes::init(&config);
-
     // run our app with hyper
     let addr = format!("0.0.0.0:{}", config.port);
 
     println!("\n\nListening on http://{}\n", addr);
+
+    let router = routes::init(config);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, router).await.unwrap();

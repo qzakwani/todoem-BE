@@ -10,7 +10,7 @@ use tower_http::trace::TraceLayer;
 use crate::config::Config;
 use crate::middlewares::jwt::jwt_auth;
 
-pub fn init(config: &Config) -> Router {
+pub fn init(config: Config) -> Router {
     let apis = Router::new()
         .nest("/user", user::init())
         .nest("/task", task::init());
@@ -21,10 +21,16 @@ pub fn init(config: &Config) -> Router {
         // allow requests from any origin
         .allow_origin(Any);
 
-    Router::new().nest("/api", apis).layer(
-        ServiceBuilder::new()
-            .layer(TraceLayer::new_for_http())
-            .layer(cors)
-            .layer(middleware::from_fn_with_state(config.clone(), jwt_auth)),
-    )
+    Router::new()
+        .with_state(config.pool)
+        .nest("/api", apis)
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(cors)
+                .layer(middleware::from_fn_with_state(
+                    (config.secret_key, config.jwt_validation),
+                    jwt_auth,
+                )),
+        )
 }

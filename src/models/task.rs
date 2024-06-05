@@ -7,6 +7,7 @@ pub enum Frequency {
     Monthly,
 }
 
+#[derive(Debug)]
 pub struct Task {
     pub id: u64,
     pub user_id: uuid::Uuid,

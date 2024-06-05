@@ -1,7 +1,7 @@
-use axum::{routing::get, Router};
+use axum::{routing::post, Router};
 
 use crate::handlers::task as TaskHandlers;
 
 pub fn init() -> Router {
-    Router::new().route("/", get(TaskHandlers::create_task))
+    Router::new().route("", post(TaskHandlers::create_task))
 }
