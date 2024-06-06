@@ -1,15 +1,16 @@
 use chrono::{DateTime, Utc};
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "frequency", rename_all = "lowercase")]
 pub enum Frequency {
     Daily,
     Weekly,
     Monthly,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct Task {
-    pub id: u64,
+    pub id: i64,
     pub user_id: uuid::Uuid,
     pub task: String,
     pub description: String,

@@ -1,29 +1,43 @@
 pub mod task;
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
 
-pub struct APIError(String, StatusCode);
+pub struct APIResponse<T>(StatusCode, Json<T>)
+where
+    T: serde::Serialize;
 
-impl IntoResponse for APIError {
+impl<T> IntoResponse for APIResponse<T>
+where
+    T: serde::Serialize,
+{
     fn into_response(self) -> Response {
-        #[derive(serde::Serialize)]
-        struct E {
-            error: String,
-        }
-
-        (self.1, Json(E { error: self.0 })).into_response()
+        (self.0, self.1).into_response()
     }
 }
 
-impl APIError {
-    pub fn new<T>(status: StatusCode, msg: String) -> Result<T, Self> {
-        Err(Self(msg, status))
+impl<T> APIResponse<T>
+where
+    T: serde::Serialize,
+{
+    pub fn new(status: StatusCode, body: T) -> Self {
+        Self(status, Json(body))
     }
 
-    pub fn e500<T>(msg: String) -> Result<T, Self> {
-        Self::new::<T>(StatusCode::INTERNAL_SERVER_ERROR, msg)
+    pub fn ok(body: T) -> Self {
+        Self(StatusCode::OK, Json(body))
+    }
+
+    pub fn created(body: T) -> Self {
+        Self(StatusCode::CREATED, Json(body))
+    }
+
+    pub fn accepted(body: T) -> Self {
+        Self(StatusCode::ACCEPTED, Json(body))
+    }
+
+    pub fn no_content() -> StatusCode {
+        StatusCode::NO_CONTENT
     }
 }
