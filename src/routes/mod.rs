@@ -13,7 +13,9 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 pub fn init(config: Config) -> Router {
-    let apis = Router::<PgPool>::new().nest("/task", task::init());
+    let apis = Router::<PgPool>::new()
+        .nest("/task", task::init())
+        .nest("/user", user::init());
 
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource

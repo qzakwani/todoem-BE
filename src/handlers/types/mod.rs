@@ -1,10 +1,12 @@
 pub mod task;
+pub mod user;
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
 
-pub struct APIResponse<T>(StatusCode, Json<T>)
+pub struct APIResponse<T = ()>(StatusCode, Option<Json<T>>)
 where
     T: serde::Serialize;
 
@@ -13,7 +15,10 @@ where
     T: serde::Serialize,
 {
     fn into_response(self) -> Response {
-        (self.0, self.1).into_response()
+        match self.1 {
+            Some(body) => (self.0, body).into_response(),
+            None => self.0.into_response(),
+        }
     }
 }
 
@@ -22,22 +27,26 @@ where
     T: serde::Serialize,
 {
     pub fn new(status: StatusCode, body: T) -> Self {
-        Self(status, Json(body))
+        Self(status, Some(Json(body)))
     }
 
     pub fn ok(body: T) -> Self {
-        Self(StatusCode::OK, Json(body))
+        Self(StatusCode::OK, Some(Json(body)))
     }
 
     pub fn created(body: T) -> Self {
-        Self(StatusCode::CREATED, Json(body))
+        Self(StatusCode::CREATED, Some(Json(body)))
     }
 
     pub fn accepted(body: T) -> Self {
-        Self(StatusCode::ACCEPTED, Json(body))
+        Self(StatusCode::ACCEPTED, Some(Json(body)))
     }
 
-    pub fn no_content() -> StatusCode {
-        StatusCode::NO_CONTENT
+    pub fn status(status: StatusCode) -> Self {
+        Self(status, None)
+    }
+
+    pub fn no_content() -> Self {
+        Self::status(StatusCode::NO_CONTENT)
     }
 }

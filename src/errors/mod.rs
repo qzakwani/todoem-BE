@@ -34,6 +34,10 @@ impl APIError {
         Self::new(StatusCode::BAD_REQUEST, msg)
     }
 
+    pub fn not_found() -> Self {
+        Self::new(StatusCode::NOT_FOUND, "Not found".to_string())
+    }
+
     pub fn auth() -> Self {
         Self::new(StatusCode::UNAUTHORIZED, "Unauthorized".to_string())
     }
