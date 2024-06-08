@@ -1,3 +1,4 @@
+use super::PAGE_LIMIT;
 use crate::{errors::APIError, handlers::types::user as T};
 use sqlx::PgPool;
 
@@ -6,14 +7,15 @@ pub async fn search(
     search_query: String,
     page: i16,
 ) -> Result<Vec<T::UserSearchResponse>, APIError> {
-    let offset = (page * 10) + 1; // todo: fix this inaccurate offset calculation
+    let offset = (page - 1) * PAGE_LIMIT;
     match sqlx::query_as::<_, T::UserSearchResponse>(
         "
     SELECT id, username, name FROM users
-    WHERE username ILIKE $1 OR name ILIKE $1 ORDER BY created_at LIMIT 10 OFFSET $2; // todo: add %% to search_query
+    WHERE username ILIKE $1 OR name ILIKE $1 ORDER BY created_at LIMIT $2 OFFSET $3; 
     ",
     )
-    .bind(search_query)
+    .bind(format!("%{}%", search_query))
+    .bind(PAGE_LIMIT)
     .bind(offset)
     .fetch_all(&pool)
     .await
