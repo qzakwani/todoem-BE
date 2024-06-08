@@ -19,7 +19,6 @@ http = "1.1.0"
 chrono = {version = "0.4.38", features = ["serde"]}
 jsonwebtoken = "9.3.0"
 axum-extra = {version = "0.9.3", features = ["cookie"]}
-anyhow = "1.0.86"
 
 
 [profile.dev.package.sqlx-macros]

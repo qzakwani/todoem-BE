@@ -10,6 +10,10 @@ CREATE TABLE users (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+CREATE EXTENSION pg_trgm;
+
+CREATE INDEX search_users_username_idx ON users USING GIN (username gin_trgm_ops);
+CREATE INDEX search_users_name_idx ON users USING GIN (name gin_trgm_ops);
 
 CREATE TABLE IF NOT EXISTS user_connections (
 user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

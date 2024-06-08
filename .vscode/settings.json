@@ -1,3 +1,10 @@
 {
-  "cSpell.words": ["chrono", "jsonwebtoken", "serde", "sqlx", "sslmode"]
+  "cSpell.words": [
+    "chrono",
+    "ILIKE",
+    "jsonwebtoken",
+    "serde",
+    "sqlx",
+    "sslmode"
+  ]
 }
