@@ -50,3 +50,21 @@ where
         Self::status(StatusCode::NO_CONTENT)
     }
 }
+
+#[derive(serde::Serialize)]
+pub struct SuccessResponse {
+    msg: String,
+}
+
+pub type APISuccess = APIResponse<SuccessResponse>;
+
+impl APISuccess {
+    pub fn ok_msg(msg: &str) -> Self {
+        APIResponse(
+            StatusCode::OK,
+            Some(Json(SuccessResponse {
+                msg: msg.to_string(),
+            })),
+        )
+    }
+}

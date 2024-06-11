@@ -16,14 +16,14 @@ fn get_req<T>(req: Result<Json<T>, JsonRejection>) -> Result<T, APIError> {
         }
         Err(JsonRejection::MissingJsonContentType(e)) => Err(APIError::new(
             StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            e.to_string(),
+            &e.to_string(),
         )),
         Err(JsonRejection::JsonDataError(e)) => Err(APIError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
-            e.to_string(),
+            &e.to_string(),
         )),
-        Err(JsonRejection::JsonSyntaxError(e)) => Err(APIError::bad(e.to_string())),
-        Err(JsonRejection::BytesRejection(_)) => Err(APIError::bad("Invalid JSON".to_string())),
+        Err(JsonRejection::JsonSyntaxError(e)) => Err(APIError::bad(&e.to_string())),
+        Err(JsonRejection::BytesRejection(_)) => Err(APIError::bad("Invalid JSON")),
         Err(e) => {
             tracing::error!("Unknown JSON rejection error {:#?}", e);
             Err(APIError::server())

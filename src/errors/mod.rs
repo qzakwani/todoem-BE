@@ -19,27 +19,28 @@ impl IntoResponse for APIError {
 }
 
 impl APIError {
-    pub fn new(status: StatusCode, msg: String) -> Self {
-        Self(status, msg)
+    pub fn new(status: StatusCode, msg: &str) -> Self {
+        Self(status, msg.to_string())
     }
 
     pub fn server() -> Self {
-        Self::new(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Something went wrong".to_string(),
-        )
+        Self::new(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong")
     }
 
-    pub fn bad(msg: String) -> Self {
+    pub fn bad(msg: &str) -> Self {
         Self::new(StatusCode::BAD_REQUEST, msg)
     }
 
     pub fn not_found() -> Self {
-        Self::new(StatusCode::NOT_FOUND, "Not found".to_string())
+        Self::new(StatusCode::NOT_FOUND, "Not found")
     }
 
     pub fn auth() -> Self {
-        Self::new(StatusCode::UNAUTHORIZED, "Unauthorized".to_string())
+        Self::new(StatusCode::UNAUTHORIZED, "Unauthorized")
+    }
+
+    pub fn forbidden() -> Self {
+        Self::new(StatusCode::FORBIDDEN, "Forbidden")
     }
 }
 
@@ -47,7 +48,7 @@ impl APIError {
 pub async fn handle_api_error(err: BoxError) -> APIError {
     tracing::error!("Error: {:#?}", err);
     if err.is::<tower::timeout::error::Elapsed>() {
-        APIError::new(StatusCode::REQUEST_TIMEOUT, "Request timed out".to_string())
+        APIError::new(StatusCode::REQUEST_TIMEOUT, "Request timed out")
     } else {
         APIError::server()
     }
