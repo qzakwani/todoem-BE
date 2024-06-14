@@ -1,12 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, sqlx::FromRow)]
-pub struct UserSearchResponse {
-    id: uuid::Uuid,
-    username: String,
-    name: Option<String>,
-}
-
 #[derive(Deserialize)]
 pub struct SearchParams {
     pub q: String,
@@ -14,7 +7,7 @@ pub struct SearchParams {
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-pub struct ViewUserResponse {
+pub struct ViewUser {
     id: uuid::Uuid,
     username: String,
     name: Option<String>,

@@ -1,8 +1,7 @@
+use super::types::user as T;
 use crate::db::query::user as Q;
-// use crate::handlers::get_req;
-use crate::handlers::types::user as T;
+use crate::models::user as M;
 use crate::models::AuthUser;
-// use axum::extract::rejection::JsonRejection;
 use axum::extract::{Extension, Path, Query, State};
 use sqlx::PgPool;
 
@@ -13,7 +12,7 @@ use super::types::{APIResponse, APISuccess};
 pub async fn search(
     State(pool): State<PgPool>,
     Query(params): Query<T::SearchParams>,
-) -> Result<APIResponse<Vec<T::UserSearchResponse>>, APIError> {
+) -> Result<APIResponse<Vec<M::User>>, APIError> {
     if params.q.is_empty() {
         return Err(APIError::bad("Query parameter 'q' is required"));
     }
@@ -29,12 +28,13 @@ pub async fn view_user_profile(
     Extension(user): Extension<AuthUser>,
     State(pool): State<PgPool>,
     Path(id): Path<uuid::Uuid>,
-) -> Result<APIResponse<T::ViewUserResponse>, APIError> {
+) -> Result<APIResponse<T::ViewUser>, APIError> {
     if user.id != id {
         return Err(APIError::forbidden());
     }
 
-    let mut profile = Q::select_user_profile(&pool, id).await?;
+    let user = Q::select_user_profile(&pool, id).await?;
+    let mut profile = T::ViewUser::from(user);
     profile.connected = Q::is_user_connected(&pool, user.id, id).await?;
     if profile.connected {
         profile.sent_connection = false;
@@ -127,6 +127,14 @@ pub async fn accept_connection(
     Q::insert_connection_tx(&mut tx, id, user.id).await?;
     Q::delete_request_connection_tx(&mut tx, id, user.id).await?;
 
+    match tx.commit().await {
+        Ok(_) => {}
+        Err(e) => {
+            tracing::error!("Failed to commit transaction: {:?}", e);
+            return Err(APIError::server());
+        }
+    }
+
     Ok(APIResponse::ok_msg("User connection request accepted"))
 }
 
@@ -148,4 +156,83 @@ pub async fn reject_connection(
     Q::delete_request_connection(&pool, id, user.id).await?;
 
     Ok(APIResponse::ok_msg("User connection request rejected"))
+}
+
+pub async fn get_received_requests(
+    Extension(user): Extension<AuthUser>,
+    State(pool): State<PgPool>,
+) -> Result<APIResponse<Vec<T::UserResponse>>, APIError> {
+    let users = Q::select_received_requests(&pool, user.id).await?;
+    Ok(APIResponse::ok(users))
+}
+
+pub async fn get_sent_requests(
+    Extension(user): Extension<AuthUser>,
+    State(pool): State<PgPool>,
+) -> Result<APIResponse<Vec<M::User>>, APIError> {
+    let users = Q::select_sent_requests(&pool, user.id).await?;
+    Ok(APIResponse::ok(users))
+}
+
+pub async fn get_listers(
+    Extension(user): Extension<AuthUser>,
+    State(pool): State<PgPool>,
+    Path(page): Path<u16>,
+) -> Result<APIResponse<Vec<M::User>>, APIError> {
+    let users = Q::select_listers(&pool, user.id, page as i16).await?;
+    Ok(APIResponse::ok(users))
+}
+
+pub async fn view_lister_profile(
+    Extension(user): Extension<AuthUser>,
+    State(pool): State<PgPool>,
+    Path(id): Path<uuid::Uuid>,
+) -> Result<APIResponse<T::ViewUser>, APIError> {
+    if user.id != id {
+        return Err(APIError::forbidden());
+    }
+
+    let user = Q::select_user_profile(&pool, id).await?;
+
+    let mut profile = T::ViewUser::from(user);
+    profile.connected = true;
+    profile.sent_connection = false;
+    profile.received_connection = false;
+
+    Ok(APIResponse::ok(profile))
+}
+
+pub async fn disconnect_lister(
+    Extension(user): Extension<AuthUser>,
+    State(pool): State<PgPool>,
+    Path(id): Path<uuid::Uuid>,
+) -> Result<APISuccess, APIError> {
+    if user.id == id {
+        return Err(APIError::bad("You cannot disconnect with yourself"));
+    }
+
+    if !Q::is_user_connected(&pool, user.id, id).await? {
+        return Err(APIError::bad("You are not connected with this user"));
+    }
+
+    let mut tx = match pool.begin().await {
+        Ok(tx) => tx,
+        Err(e) => {
+            tracing::error!("Failed to start transaction: {:?}", e);
+            return Err(APIError::server());
+        }
+    };
+
+    Q::delete_connection(&mut tx, user.id, id).await?;
+    Q::delete_connection(&mut tx, id, user.id).await?;
+
+    match tx.commit().await {
+        Ok(_) => {}
+        Err(e) => {
+            tracing::error!("Failed to commit transaction: {:?}", e);
+            return Err(APIError::server());
+        }
+    }
+
+    Ok(APIResponse::ok_msg("User disconnected"))
 }

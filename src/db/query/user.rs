@@ -1,5 +1,5 @@
-use super::PAGE_LIMIT;
-use crate::{errors::APIError, handlers::types::user as T};
+use super::{OFFSET, PAGE_LIMIT};
+use crate::{errors::APIError, models::user as M};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -7,9 +7,8 @@ pub async fn search(
     pool: PgPool,
     search_query: String,
     page: i16,
-) -> Result<Vec<T::UserSearchResponse>, APIError> {
-    let offset = (page - 1) * PAGE_LIMIT;
-    match sqlx::query_as::<_, T::UserSearchResponse>(
+) -> Result<Vec<M::User>, APIError> {
+    match sqlx::query_as::<_, M::User>(
         "
     SELECT id, username, name FROM users
     WHERE username ILIKE '%' || $1 || '%' OR name ILIKE '%' || $1 || '%' ORDER BY created_at LIMIT $2 OFFSET $3; 
@@ -17,7 +16,7 @@ pub async fn search(
     )
     .bind( search_query)
     .bind(PAGE_LIMIT)
-    .bind(offset)
+    .bind(OFFSET(page))
     .fetch_all(&pool)
     .await
     {
@@ -29,13 +28,11 @@ pub async fn search(
     }
 }
 
-pub async fn select_user_profile(pool: &PgPool, id: Uuid) -> Result<T::ViewUserResponse, APIError> {
-    match sqlx::query_as::<_, T::ViewUserResponse>(
-        "SELECT id, username, name from users WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await
+pub async fn select_user_profile(pool: &PgPool, id: Uuid) -> Result<M::User, APIError> {
+    match sqlx::query_as::<_, M::User>("SELECT id, username, name from users WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
     {
         Ok(user) => Ok(user),
         Err(e) => {
@@ -184,6 +181,101 @@ pub async fn insert_connection_tx(
         }
         Err(e) => {
             tracing::error!("Failed to insert connection: {:?}", e);
+            Err(APIError::server())
+        }
+    }
+}
+
+pub async fn select_received_requests(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Vec<M::User>, APIError> {
+    match sqlx::query_as::<_, M::User>(
+        "
+    SELECT u.id, u.username, u.name FROM users u
+    INNER JOIN user_connection_requests r ON u.id = r.sender_id
+    WHERE r.receiver_id = $1 ORDER BY r.sent_at DESC
+    ;
+    ",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(users) => Ok(users),
+        Err(e) => {
+            tracing::error!("Failed to get received requests: {:?}", e);
+            Err(APIError::server())
+        }
+    }
+}
+
+pub async fn select_sent_requests(pool: &PgPool, user_id: Uuid) -> Result<Vec<M::User>, APIError> {
+    match sqlx::query_as::<_, M::User>(
+        "
+    SELECT u.id, u.username, u.name FROM users u
+    INNER JOIN user_connection_requests r ON u.id = r.receiver_id
+    WHERE r.sender_id = $1 ORDER BY r.sent_at DESC
+    ;
+    ",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(users) => Ok(users),
+        Err(e) => {
+            tracing::error!("Failed to get sent requests: {:?}", e);
+            Err(APIError::server())
+        }
+    }
+}
+
+pub async fn select_listers(
+    pool: &PgPool,
+    user_id: Uuid,
+    page: i16,
+) -> Result<Vec<M::User>, APIError> {
+    match sqlx::query_as::<_, M::User>(
+        "
+        SELECT u.id, u.username, u.name FROM users u
+        INNER JOIN user_connections c ON u.id = c.connected_id
+        WHERE c.user_id = $1 ORDER BY u.connected_at ASC LIMIT $2 OFFSET $3;
+        ",
+    )
+    .bind(user_id)
+    .bind(PAGE_LIMIT)
+    .bind(OFFSET(page))
+    .fetch_all(pool)
+    .await
+    {
+        Ok(users) => Ok(users),
+        Err(e) => {
+            tracing::error!("Failed to get listers: {:?}", e);
+            Err(APIError::server())
+        }
+    }
+}
+
+pub async fn delete_connection(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    user_id: Uuid,
+    connected_id: Uuid,
+) -> Result<(), APIError> {
+    match sqlx::query("DELETE FROM user_connections WHERE user_id = $1 AND connected_id = $2;")
+        .bind(user_id)
+        .bind(connected_id)
+        .execute(&mut **tx)
+        .await
+    {
+        Ok(r) => {
+            if r.rows_affected() != 1 {
+                return Err(APIError::not_found());
+            }
+            Ok(())
+        }
+        Err(e) => {
+            tracing::error!("Failed to delete connection: {:?}", e);
             Err(APIError::server())
         }
     }
