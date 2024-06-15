@@ -1,3 +1,4 @@
+pub mod list;
 pub mod task;
 pub mod user;
 
@@ -14,11 +15,11 @@ use tower_http::trace::TraceLayer;
 
 pub fn init(config: Config) -> Router {
     let apis = Router::<PgPool>::new()
+        .nest("/user", user::init())
         .nest("/task", task::init())
-        .nest("/user", user::init());
+        .nest("/list", list::init());
 
     let cors = CorsLayer::new()
-        // allow `GET` and `POST` when accessing the resource
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         // allow requests from any origin
         .allow_origin(Any);

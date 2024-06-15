@@ -29,12 +29,12 @@ pub async fn view_user_profile(
     State(pool): State<PgPool>,
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APIResponse<T::ViewUser>, APIError> {
-    if user.id != id {
+    if user.id == id {
         return Err(APIError::forbidden());
     }
 
-    let user = Q::select_user_profile(&pool, id).await?;
-    let mut profile = T::ViewUser::from(user);
+    let _user = Q::select_user_profile(&pool, id).await?;
+    let mut profile = T::ViewUser::from(_user);
     profile.connected = Q::is_user_connected(&pool, user.id, id).await?;
     if profile.connected {
         profile.sent_connection = false;
@@ -53,7 +53,7 @@ pub async fn request_connection(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APISuccess, APIError> {
     if user.id == id {
-        return Err(APIError::bad("You cannot connect with yourself"));
+        return Err(APIError::forbidden());
     }
 
     if Q::is_user_connected(&pool, user.id, id).await? {
@@ -83,7 +83,7 @@ pub async fn delete_request_connection(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APISuccess, APIError> {
     if user.id == id {
-        return Err(APIError::bad("You cannot connect with yourself"));
+        return Err(APIError::forbidden());
     }
 
     if !Q::is_connection_requested(&pool, user.id, id).await? {
@@ -103,7 +103,7 @@ pub async fn accept_connection(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APISuccess, APIError> {
     if user.id == id {
-        return Err(APIError::bad("You cannot connect with yourself"));
+        return Err(APIError::forbidden());
     }
 
     if Q::is_user_connected(&pool, user.id, id).await? {
@@ -144,7 +144,7 @@ pub async fn reject_connection(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APISuccess, APIError> {
     if user.id == id {
-        return Err(APIError::bad("You cannot connect with yourself"));
+        return Err(APIError::forbidden());
     }
 
     if !Q::is_connection_requested(&pool, id, user.id).await? {
@@ -161,7 +161,7 @@ pub async fn reject_connection(
 pub async fn get_received_requests(
     Extension(user): Extension<AuthUser>,
     State(pool): State<PgPool>,
-) -> Result<APIResponse<Vec<T::UserResponse>>, APIError> {
+) -> Result<APIResponse<Vec<M::User>>, APIError> {
     let users = Q::select_received_requests(&pool, user.id).await?;
     Ok(APIResponse::ok(users))
 }
@@ -183,18 +183,34 @@ pub async fn get_listers(
     Ok(APIResponse::ok(users))
 }
 
+pub async fn search_listers(
+    Extension(user): Extension<AuthUser>,
+    State(pool): State<PgPool>,
+    Query(params): Query<T::SearchParams>,
+) -> Result<APIResponse<Vec<M::User>>, APIError> {
+    if params.q.is_empty() {
+        return Err(APIError::bad("Query parameter 'q' is required"));
+    }
+
+    let page = params.p.unwrap_or(1) as i16;
+
+    let users = Q::search_listers(&pool, user.id, params.q, page).await?;
+
+    Ok(APIResponse::ok(users))
+}
+
 pub async fn view_lister_profile(
     Extension(user): Extension<AuthUser>,
     State(pool): State<PgPool>,
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APIResponse<T::ViewUser>, APIError> {
-    if user.id != id {
+    if user.id == id {
         return Err(APIError::forbidden());
     }
 
-    let user = Q::select_user_profile(&pool, id).await?;
+    let _user = Q::select_user_profile(&pool, id).await?;
 
-    let mut profile = T::ViewUser::from(user);
+    let mut profile = T::ViewUser::from(_user);
     profile.connected = true;
     profile.sent_connection = false;
     profile.received_connection = false;
@@ -208,7 +224,7 @@ pub async fn disconnect_lister(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<APISuccess, APIError> {
     if user.id == id {
-        return Err(APIError::bad("You cannot disconnect with yourself"));
+        return Err(APIError::forbidden());
     }
 
     if !Q::is_user_connected(&pool, user.id, id).await? {

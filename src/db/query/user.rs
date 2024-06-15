@@ -257,6 +257,35 @@ pub async fn select_listers(
     }
 }
 
+pub async fn search_listers(
+    pool: &PgPool,
+    user_id: Uuid,
+    search_query: String,
+    page: i16,
+) -> Result<Vec<M::User>, APIError> {
+    match sqlx::query_as::<_, M::User>(
+        "
+        SELECT u.id, u.username, u.name FROM users u
+        INNER JOIN user_connections c ON u.id = c.connected_id
+        WHERE c.user_id = $1 AND (u.username ILIKE '%' || $2 || '%' OR u.name ILIKE '%' || $2 || '%') 
+        ORDER BY u.connected_at ASC LIMIT $3 OFFSET $4;
+        ",
+    )
+    .bind(user_id)
+    .bind(search_query)
+    .bind(PAGE_LIMIT)
+    .bind(OFFSET(page))
+    .fetch_all(pool)
+    .await
+    {
+        Ok(users) => Ok(users),
+        Err(e) => {
+            tracing::error!("Failed to search listers: {:?}", e);
+            Err(APIError::server())
+        }
+    }
+}
+
 pub async fn delete_connection(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: Uuid,

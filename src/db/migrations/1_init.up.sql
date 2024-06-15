@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 
 
   task TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT,
   done BOOLEAN NOT NULL DEFAULT FALSE,
   due_date TIMESTAMPTZ,
   repeat_frequency frequency,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS groups (
   id UUID PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS group_tasks (
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
 
   task TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT,
 
   done BOOLEAN NOT NULL DEFAULT FALSE,
   comment TEXT NOT NULL DEFAULT '',
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS lists (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
   name VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT,
   task_count SMALLINT NOT NULL,
   done BOOLEAN NOT NULL DEFAULT FALSE,  
 
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS list_tasks (
   list_id UUID NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
 
   task TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT,
   done BOOLEAN NOT NULL DEFAULT FALSE
 );
 
@@ -119,11 +119,10 @@ CREATE TABLE IF NOT EXISTS sent_lists (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
   name VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT,
   task_count SMALLINT NOT NULL,
 
-  sent_to_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  sent_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+  sent_at TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sent_list_tasks (
@@ -131,7 +130,13 @@ CREATE TABLE IF NOT EXISTS sent_list_tasks (
   sent_list_id UUID NOT NULL REFERENCES sent_lists(id) ON DELETE CASCADE,
 
   task TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT ''
+  description TEXT
+);
+
+CREATE TABLE IF NOT EXISTS list_sent_to_users (
+  list_id UUID NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (list_id, user_id)
 );
 
 COMMIT;

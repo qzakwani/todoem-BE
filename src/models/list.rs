@@ -25,8 +25,7 @@ pub struct SentList {
     pub name: String,
     pub description: String,
     pub task_count: u16,
-    pub sent_to_id: Option<uuid::Uuid>,
-    pub sent_at: DateTime<Utc>,
+    pub sent_at: Option<DateTime<Utc>>,
 }
 
 pub struct SentListTask {
